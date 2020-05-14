@@ -167,6 +167,11 @@ contains
     integer :: ltype         ! landunit type
     logical :: error         ! error flag
     !------------------------------------------------------------------------------
+
+    ! There are problems with the write statements in this routine when running
+    ! multi-threaded in NUOPC. Wrapping the whole routine in an OMP critical solves the
+    ! problem, by ensuring that we don't have multiple threads trying to write at the
+    ! same time.
 !$OMP CRITICAL
     associate( &
          begg => bounds%begg, &
