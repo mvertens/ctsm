@@ -66,7 +66,7 @@ contains
     ! Do various calculations that need to happen before the main biogeophysics flux calculations
     !
     ! !ARGUMENTS:
-    type(bounds_type)              , intent(in)    :: bounds    
+    type(bounds_type)              , intent(in)    :: bounds
     integer                        , intent(in)    :: num_nolakec       ! number of column non-lake points in column filter
     integer                        , intent(in)    :: filter_nolakec(:) ! column filter for non-lake points
     integer                        , intent(in)    :: num_nolakep       ! number of column non-lake points in patch filter
@@ -131,7 +131,7 @@ contains
     use decompMod       , only : subgrid_level_patch
     use BalanceCheckMod , only : GetBalanceCheckSkipSteps
     ! !ARGUMENTS:
-    type(bounds_type)              , intent(in)    :: bounds    
+    type(bounds_type)              , intent(in)    :: bounds
     integer                        , intent(in)    :: num_nolakep       ! number of column non-lake points in patch filter
     integer                        , intent(in)    :: filter_nolakep(:) ! patch filter for non-lake points
     type(hlm_fates_interface_type) , intent(in)    :: clm_fates
@@ -148,7 +148,7 @@ contains
 
     associate( &
          z0mg             =>    frictionvel_inst%z0mg_col             , & ! Input:  [real(r8) (:)   ] roughness length of ground, momentum [m]
-         htop             =>    canopystate_inst%htop_patch           , & ! Input:  [real(r8) (:)   ] canopy top (m)                           
+         htop             =>    canopystate_inst%htop_patch           , & ! Input:  [real(r8) (:)   ] canopy top (m)
          z0m              =>    canopystate_inst%z0m_patch            , & ! Output: [real(r8) (:)   ] momentum roughness length (m)
          displa           =>    canopystate_inst%displa_patch           & ! Output: [real(r8) (:)   ] displacement height (m)
          )
@@ -156,7 +156,7 @@ contains
     ! Set roughness and displacement
     ! Note that FATES passes back z0m and displa at the end
     ! of its dynamics call.  If and when crops are
-    ! enabled simultaneously with FATES, we will 
+    ! enabled simultaneously with FATES, we will
     ! have to apply a filter here.
     if(use_fates) then
        call clm_fates%TransferZ0mDisp(bounds, &
@@ -235,7 +235,7 @@ contains
     ! zeroed-out fluxes everywhere.
     !
     ! !ARGUMENTS:
-    type(bounds_type)              , intent(in)    :: bounds    
+    type(bounds_type)              , intent(in)    :: bounds
     integer                        , intent(in)    :: num_nolakec       ! number of column non-lake points in column filter
     integer                        , intent(in)    :: filter_nolakec(:) ! column filter for non-lake points
     integer                        , intent(in)    :: num_nolakep       ! number of column non-lake points in patch filter
@@ -265,7 +265,7 @@ contains
          snl              =>    col%snl                               , & ! Input:  [integer  (:)   ] number of snow layers
          zii              =>    col%zii                               , & ! Output: [real(r8) (:)   ] convective boundary height [m]
          urbpoi           =>    lun%urbpoi                            , & ! Input:  [logical  (:)   ] true => landunit is an urban point
-         forc_t           =>    atm2lnd_inst%forc_t_downscaled_col    , & ! Input:  [real(r8) (:)   ] atmospheric temperature (Kelvin)         
+         forc_t           =>    atm2lnd_inst%forc_t_downscaled_col    , & ! Input:  [real(r8) (:)   ] atmospheric temperature (Kelvin)
          forc_th          =>    atm2lnd_inst%forc_th_downscaled_col   , & ! Input:  [real(r8) (:)   ]  atmospheric potential temperature (Kelvin)
          elai             =>    canopystate_inst%elai_patch           , & ! Input:  [real(r8) (:)   ] one-sided leaf area index with burying by snow
          esai             =>    canopystate_inst%esai_patch           , & ! Input:  [real(r8) (:)   ] one-sided stem area index with burying by snow
@@ -275,14 +275,14 @@ contains
          frac_h2osfc      =>    waterdiagnosticbulk_inst%frac_h2osfc_col       , & ! Input:  [real(r8) (:)   ] fraction of ground covered by surface water (0 to 1)
          h2osoi_ice       =>    waterstatebulk_inst%h2osoi_ice_col        , & ! Input:  [real(r8) (:,:) ] ice lens (kg/m2)
          h2osoi_liq       =>    waterstatebulk_inst%h2osoi_liq_col        , & ! Input:  [real(r8) (:,:) ] liquid water (kg/m2)
-         forc_q           =>    wateratm2lndbulk_inst%forc_q_downscaled_col    , & ! Input:  [real(r8) (:)   ] atmospheric specific humidity (kg/kg)    
+         forc_q           =>    wateratm2lndbulk_inst%forc_q_downscaled_col    , & ! Input:  [real(r8) (:)   ] atmospheric specific humidity (kg/kg)
          t_soisno         =>    temperature_inst%t_soisno_col         , & ! Input:  [real(r8) (:,:) ] soil temperature (Kelvin)
          t_h2osfc         =>    temperature_inst%t_h2osfc_col         , & ! Input:  [real(r8) (:)   ] surface water temperature
          tssbef           =>    temperature_inst%t_ssbef_col          , & ! Output: [real(r8) (:,:) ] soil/snow temperature before update
          t_h2osfc_bef     =>    temperature_inst%t_h2osfc_bef_col     , & ! Output: [real(r8) (:)   ] saved surface water temperature
          t_grnd           =>    temperature_inst%t_grnd_col           , & ! Output: [real(r8) (:)   ] ground temperature (Kelvin)
          emg              =>    temperature_inst%emg_col              , & ! Output: [real(r8) (:)   ] ground emissivity
-         emv              =>    temperature_inst%emv_patch            , & ! Output: [real(r8) (:)   ] vegetation emissivity                    
+         emv              =>    temperature_inst%emv_patch            , & ! Output: [real(r8) (:)   ] vegetation emissivity
          beta             =>    temperature_inst%beta_col             , & ! Output: [real(r8) (:)   ] coefficient of convective velocity [-]
          thv              =>    temperature_inst%thv_col              , & ! Output: [real(r8) (:)   ] virtual potential temperature (kelvin)
          thm              =>    temperature_inst%thm_patch            , & ! Output: [real(r8) (:)   ] intermediate variable (forc_t+0.0098*forc_hgt_t_patch)
@@ -315,7 +315,7 @@ contains
           if (col%itype(c) == icol_sunwall .or. col%itype(c) == icol_shadewall &
                .or. col%itype(c) == icol_roof) then
              if (j > nlevurb) then
-                tssbef(c,j) = spval 
+                tssbef(c,j) = spval
              else
                 tssbef(c,j) = t_soisno(c,j)
              end if
@@ -339,7 +339,7 @@ contains
           t_grnd(c) = (1 - frac_h2osfc(c)) * t_soisno(c,1) + frac_h2osfc(c) * t_h2osfc(c)
        end if
 
-       ! Ground emissivity - only calculate for non-urban landunits 
+       ! Ground emissivity - only calculate for non-urban landunits
        ! Urban emissivities are currently read in from data file
        if (.not. urbpoi(l)) then
           if (lun%itype(l)==istice) then
@@ -374,13 +374,13 @@ contains
        eflx_sh_tot(p) = 0._r8
        if (urbpoi(l)) then
           eflx_sh_tot_u(p) = 0._r8
-       else if (lun%itype(l) == istsoil .or. lun%itype(l) == istcrop) then 
+       else if (lun%itype(l) == istsoil .or. lun%itype(l) == istcrop) then
           eflx_sh_tot_r(p) = 0._r8
        end if
        eflx_lh_tot(p) = 0._r8
        if (urbpoi(l)) then
           eflx_lh_tot_u(p) = 0._r8
-       else if (lun%itype(l) == istsoil .or. lun%itype(l) == istcrop) then 
+       else if (lun%itype(l) == istsoil .or. lun%itype(l) == istcrop) then
           eflx_lh_tot_r(p) = 0._r8
        end if
        eflx_sh_veg(p) = 0._r8
@@ -395,6 +395,7 @@ contains
 
        avmuir = 1._r8
        emv(p) = 1._r8-exp(-(elai(p)+esai(p))/avmuir)
+       ! TODO: MV write statements here
 
        ! thm
        thm(p)  = forc_t(c) + 0.0098_r8*forc_hgt_t_patch(p)

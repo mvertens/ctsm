@@ -165,6 +165,9 @@ contains
     ! pgi 14.7 ('normalize_forall_array: non-conformable'), which appears in the call to
     ! CalcIrrigationNeeded. Simply declaring this variable makes the ICE go away.
     real(r8), allocatable :: dummy1_to_make_pgi_happy(:)
+    !
+    logical  :: write_output
+    logical  :: first_call = .true.
     !-----------------------------------------------------------------------
 
     ! Determine processor bounds and clumps for this processor
@@ -232,7 +235,7 @@ contains
     ! ========================================================================
 
     need_glacier_initialization = is_first_step()
-    
+
     if (need_glacier_initialization) then
        !$OMP PARALLEL DO PRIVATE (nc, bounds_clump)
        do nc = 1, nclumps
@@ -251,7 +254,7 @@ contains
     ! Specified phenology
     ! Done in SP mode, FATES-SP mode and also when dry-deposition is active
     ! ============================================================================
-    
+
     if (use_cn) then
        ! For dry-deposition need to call CLMSP so that mlaidiff is obtained
        ! NOTE: This is also true of FATES below
@@ -290,7 +293,7 @@ contains
        end if
 
     end if
-    
+
     ! ==================================================================================
     ! Determine decomp vertical profiles
     !
@@ -486,7 +489,7 @@ contains
           call ndep_interp(bounds_proc, atm2lnd_inst)
        end if
     end if
-    
+
     if(use_cn) then
        call t_startf('bgc_interp')
        call bgc_vegetation_inst%InterpFileInputs(bounds_proc)
@@ -520,9 +523,37 @@ contains
     ! snow accumulation exceeds 10 mm.
     ! ============================================================================
 
+    if (first_call) then
+       if (get_nstep() == 1) then ! initial run
+          write_output = .false.
+       else if (get_nstep() == 49) then ! restart run
+          write_output = .true.
+       end if
+       first_call = .false.
+    else
+       if (get_nstep() == 1) then ! initial run
+          write_output = .true.
+       else if (get_nstep() == 49) then ! restart run
+          write_output = .false.
+       end if
+    end if
+
+
     !$OMP PARALLEL DO PRIVATE (nc,l,c, bounds_clump, downreg_patch, leafn_patch, agnpp_patch, bgnpp_patch, annsum_npp_patch, rr_patch, froot_carbon, croot_carbon)
     do nc = 1,nclumps
        call get_clump_bounds(nc, bounds_clump)
+
+       ! do p = bounds_clump%begp,bounds_clump%endp
+       !    if (write_output .and. close_to(grc%londeg(patch%gridcell(p)), grc%latdeg(patch%gridcell(p)), &
+       !         0.26718750000000E+03_r8, 0.29033187709747E+02_r8)) then
+       !       write(6,'(a,2x,2(i0,2x),2(d20.14,2x))') &
+       !            'clm_driver1 DEBUG: nstep,p,elai,esai = ',&
+       !            get_nstep(),p,canopystate_inst%elai_patch(p),canopystate_inst%esai_patch(p)
+       !       write(6,'(a,2x,2(i0,2x),2(d20.14,2x))') &
+       !            'clm_driver1 DEBUG: nstep,p,tlai,tsai = ',&
+       !            get_nstep(),p,canopystate_inst%tlai_patch(p),canopystate_inst%tsai_patch(p)
+       !    end if
+       ! end do
 
        call t_startf('drvinit')
 
@@ -760,7 +791,7 @@ contains
           croot_carbon = bgc_vegetation_inst%get_croot_carbon_patch( &
                bounds_clump, canopystate_inst%tlai_patch(bounds_clump%begp:bounds_clump%endp))
        end if
-          
+
        call CanopyFluxes(bounds_clump,                                                      &
             filter(nc)%num_exposedvegp, filter(nc)%exposedvegp,                             &
             clm_fates,nc,                                                                   &
@@ -1118,7 +1149,7 @@ contains
        !  TODO PUT FAteS DRYDEP wrapper here
        if(use_fates.and. n_drydep >0)then
           call clm_fates%wrap_drydep(nc, drydepvel_inst)
-       end if 
+       end if
        call t_startf('depvel')
        call depvel_compute(bounds_clump, &
             atm2lnd_inst, canopystate_inst, water_inst%waterstatebulk_inst, &
@@ -1153,7 +1184,7 @@ contains
 
        call t_stopf('hydro2_drainage')
 
-       
+
        if (use_cn .or. use_fates_bgc) then
           call t_startf('EcosysDynPostDrainage')
           call bgc_vegetation_inst%EcosystemDynamicsPostDrainage(bounds_clump, &
@@ -1225,14 +1256,14 @@ contains
           call t_startf('cnbalchk')
           call bgc_vegetation_inst%BalanceCheck( &
                bounds_clump, filter(nc)%num_bgc_soilc, filter(nc)%bgc_soilc, &
-               soilbiogeochem_carbonflux_inst, & 
+               soilbiogeochem_carbonflux_inst, &
                soilbiogeochem_nitrogenflux_inst, &
-               soilbiogeochem_carbonstate_inst, & 
+               soilbiogeochem_carbonstate_inst, &
                soilbiogeochem_nitrogenstate_inst, &
                atm2lnd_inst, clm_fates )
           call t_stopf('cnbalchk')
        end if
-       
+
        ! Calculation of methane fluxes
 
        if (use_lch4) then
@@ -1279,9 +1310,9 @@ contains
        ! This is only relevant to  fates two stream to not break sun fraction calculations
        ! on the second timestep after start from finidat or for hybrid run.
        ! The first clause is to maintain b4b with base, but is not necessary.
-       
+
        if (use_fates .and. .not.doalb ) then
-          if ( (is_cold_start .and. get_nstep() == 1) .or. & 
+          if ( (is_cold_start .and. get_nstep() == 1) .or. &
               ((fates_radiation_model == 'twostream') .and. (get_nstep()== 1) .and. (.not.use_fates_sp) &
                 .and. (.not.is_cold_start) .and. (nsrest == nsrStartup)) ) then
              call UpdateZenithAngles(bounds_clump, surfalb_inst, nextsw_cday, declinp1)
@@ -1370,7 +1401,7 @@ contains
     allocate(net_carbon_exchange_grc(bounds_proc%begg:bounds_proc%endg))
     if (.not. use_fates) then
        net_carbon_exchange_grc = bgc_vegetation_inst%get_net_carbon_exchange_grc(bounds_proc)
-    else 
+    else
        net_carbon_exchange_grc(bounds_proc%begg:bounds_proc%endg) = 0.0_r8
        if (use_fates_bgc) then
           !$OMP PARALLEL DO PRIVATE (nc, bounds_clump)
@@ -1559,6 +1590,16 @@ contains
        end do
        !$OMP END PARALLEL DO
     end if
+
+    contains
+       logical function close_to(lon,lat,target_lon,target_lat)
+          real(r8), intent(in) :: lon
+          real(r8), intent(in) :: lat
+          real(r8), intent(in) :: target_lon
+          real(r8), intent(in) :: target_lat
+          real(r8), parameter  :: eps=1.e-10
+          close_to = (abs(lon - target_lon) < eps) .and.  (abs(lat - target_lat) < eps)
+       end function close_to
 
   end subroutine clm_drv
 

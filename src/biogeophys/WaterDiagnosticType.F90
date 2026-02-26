@@ -15,13 +15,15 @@ module WaterDiagnosticType
   use decompMod      , only : subgrid_level_patch, subgrid_level_column, subgrid_level_landunit, subgrid_level_gridcell
   use clm_varctl     , only : use_vancouver, use_mexicocity
   use clm_varcon     , only : spval
-  use LandunitType   , only : lun                
+  use LandunitType   , only : lun
   use WaterInfoBaseType, only : water_info_base_type
   use WaterTracerContainerType, only : water_tracer_container_type
   use WaterTracerUtils, only : AllocateVar1d
   use WaterStateType, only : waterstate_type
   use WaterFluxType, only : waterflux_type
-  !
+  use GridcellType    , only : grc
+  use PatchType       , only : patch
+  use clm_time_manager, only : get_nstep
   implicit none
   save
   private
@@ -72,7 +74,7 @@ contains
   subroutine Init(this, bounds, info, tracer_vars)
 
     class(waterdiagnostic_type), intent(inout) :: this
-    type(bounds_type) , intent(in)    :: bounds  
+    type(bounds_type) , intent(in)    :: bounds
     class(water_info_base_type), intent(in), target :: info
     type(water_tracer_container_type), intent(inout) :: tracer_vars
 
@@ -96,7 +98,7 @@ contains
     !
     ! !ARGUMENTS:
     class(waterdiagnostic_type), intent(inout) :: this
-    type(bounds_type), intent(in) :: bounds  
+    type(bounds_type), intent(in) :: bounds
     type(water_tracer_container_type), intent(inout) :: tracer_vars
     !
     ! !LOCAL VARIABLES:
@@ -152,7 +154,7 @@ contains
     !
     ! !ARGUMENTS:
     class(waterdiagnostic_type), intent(in) :: this
-    type(bounds_type), intent(in) :: bounds  
+    type(bounds_type), intent(in) :: bounds
     !
     ! !LOCAL VARIABLES:
     integer           :: begp, endp
@@ -199,7 +201,7 @@ contains
          long_name=this%info%lname('2m specific humidity'), &
          ptr_patch=this%q_ref2m_patch)
 
-    this%h2ocan_patch(begp:endp) = spval 
+    this%h2ocan_patch(begp:endp) = spval
     call hist_addfld1d ( &
          fname=this%info%fname('H2OCAN'), &
          units='mm',  &
@@ -207,7 +209,7 @@ contains
          long_name=this%info%lname('intercepted water'), &
          ptr_patch=this%h2ocan_patch)
 
-    
+
     ! Snow properties - these will be vertically averaged over the snow profile
 
     this%snowliq_col(begc:endc) = spval
@@ -249,7 +251,7 @@ contains
   subroutine InitCold(this, bounds)
     !
     ! !DESCRIPTION:
-    ! Initialize time constant variables and cold start conditions 
+    ! Initialize time constant variables and cold start conditions
     !
     ! !USES:
     use ncdio_pio       , only : file_desc_t
@@ -274,7 +276,7 @@ contains
     this%total_plant_stored_h2o_col(bounds%begc:bounds%endc) = 0.0_r8
 
 
-    do l = bounds%begl, bounds%endl 
+    do l = bounds%begl, bounds%endl
        if (lun%urbpoi(l)) then
           if (use_vancouver) then
              this%qaf_lun(l) = 0.0111_r8 * ratio
@@ -290,7 +292,7 @@ contains
 
   !------------------------------------------------------------------------
   subroutine Restart(this, bounds, ncid, flag)
-    ! 
+    !
     ! !DESCRIPTION:
     ! Read/Write module information to/from restart file.
     !
@@ -302,7 +304,7 @@ contains
     !
     ! !ARGUMENTS:
     class(waterdiagnostic_type), intent(in) :: this
-    type(bounds_type), intent(in)    :: bounds 
+    type(bounds_type), intent(in)    :: bounds
     type(file_desc_t), intent(inout) :: ncid   ! netcdf id
     character(len=*) , intent(in)    :: flag   ! 'read' or 'write'
     !
@@ -366,6 +368,7 @@ contains
     !
     ! !LOCAL VARIABLES:
     integer :: fp, p
+    real(r8) :: lat,lon
 
     character(len=*), parameter :: subname = 'Summary'
     !-----------------------------------------------------------------------
@@ -373,7 +376,26 @@ contains
     do fp = 1, num_soilp
        p = filter_soilp(fp)
        this%h2ocan_patch(p) = waterstate_inst%liqcan_patch(p) + waterstate_inst%snocan_patch(p)
+
+       lat = grc%latdeg(patch%gridcell(p))
+       lon = grc%londeg(patch%gridcell(p))
+
+       ! if (close_to(lon, lat, 0.26718750000000E+03_r8, 0.29033187709747E+02_r8)) then
+       !    write(6,'(a,2x,2(i0,2x),2(d20.14,2x))') &
+       !         ' Summary DEBUG: nstep,p,liqcan_patch,snocan_patch = ',&
+       !         get_nstep(),p,waterstate_inst%liqcan_patch(p),waterstate_inst%snocan_patch(p)
+       ! end if
     end do
+
+    contains
+       logical function close_to(lon,lat,target_lon,target_lat)
+          real(r8), intent(in) :: lon
+          real(r8), intent(in) :: lat
+          real(r8), intent(in) :: target_lon
+          real(r8), intent(in) :: target_lat
+          real(r8), parameter  :: eps=1.e-10
+          close_to = (abs(lon - target_lon) < eps) .and.  (abs(lat - target_lat) < eps)
+       end function close_to
 
   end subroutine Summary
 
